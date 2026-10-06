@@ -34,7 +34,7 @@ class Device(LifecycleModel):
     name = models.CharField(max_length=255)
     key = models.CharField(max_length=255, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    last_ping = models.DateTimeField(null=True, blank=True)
+    last_ping = models.DateTimeField(default=timezone.now)
 
 
 class ConnectionSession(LifecycleModel):
