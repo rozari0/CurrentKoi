@@ -8,6 +8,7 @@ class DeviceAdmin(admin.ModelAdmin):
     list_display = ("id", "name", "user", "is_online", "created_at", "last_ping")
     search_fields = ("name", "user__username", "key")
     list_filter = ("created_at", "last_ping")
+    readonly_fields = ("id", "key", "created_at", "last_ping")
 
 
 @admin.register(ConnectionSession)
