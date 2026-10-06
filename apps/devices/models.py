@@ -7,6 +7,8 @@ from django_lifecycle import BEFORE_CREATE, LifecycleModel, hook
 
 from apps.accounts.models import User
 
+THRESHOLD_SECONDS = 90
+
 
 class Device(LifecycleModel):
     class Meta:
@@ -18,9 +20,7 @@ class Device(LifecycleModel):
     @property
     def is_online(self):
         if self.last_ping:
-            return (
-                self.last_ping - self.created_at
-            ).total_seconds() < 90  # 30 seconds threshold for online status
+            return (self.last_ping - timezone.now()).total_seconds() < THRESHOLD_SECONDS
         return False
 
     @hook(BEFORE_CREATE)
