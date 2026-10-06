@@ -9,6 +9,6 @@ class AuthBearer(HttpBearer):
             api = Device.objects.get(key=token)
             request.user = api.user
         except Device.DoesNotExist:
-            request.user = None
+            return None
 
-        return request.user
+        return token
