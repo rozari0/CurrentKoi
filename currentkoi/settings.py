@@ -119,3 +119,7 @@ MAILERS = {
 
 # Custom user model
 AUTH_USER_MODEL = "accounts.User"
+
+# Admin Site Visibility
+KEEP_ADMIN_SITE = env.bool("KEEP_ADMIN_SITE", default=True)
+ADMIN_SITE_PATH = env.str("ADMIN_SITE_PATH", default="admin/")
