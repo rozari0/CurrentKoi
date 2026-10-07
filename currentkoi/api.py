@@ -8,6 +8,7 @@ api = NinjaExtraAPI(
     title="Current KOI API",
     description="API for Current KOI",
     version="1.0.0",
+    urls_namespace="apiv1",
     auth=AuthBearer(),
 )
 
