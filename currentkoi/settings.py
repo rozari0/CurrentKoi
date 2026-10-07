@@ -27,6 +27,8 @@ INSTALLED_APPS = [
     "apps.accounts",
     "apps.devices",
     "ninja_extra",
+    "allauth",
+    "allauth.account",
 ]
 
 MIDDLEWARE = [
@@ -38,6 +40,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 ROOT_URLCONF = "currentkoi.urls"
@@ -117,6 +120,11 @@ MAILERS = {
 
 # Custom user model
 AUTH_USER_MODEL = "accounts.User"
+
+AUTHENTICATION_BACKENDS = [
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+
 
 # Admin Site Visibility
 KEEP_ADMIN_SITE = env.bool("KEEP_ADMIN_SITE", default=True)
