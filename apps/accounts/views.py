@@ -1,9 +1,7 @@
-from ninja_extra import api_controller, http_get
-
-from apps.accounts.auth import AuthBearer
+from ninja_extra import api_controller, http_get, permissions
 
 
-@api_controller(tags=["API Keys"])
+@api_controller(tags=["API Keys"], permissions=[permissions.IsAuthenticated()])
 class APIController:
     @http_get("/check")
     def checkapi(self, request):
