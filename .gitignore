@@ -20,3 +20,4 @@ wheels/
 
 # Database
 *.sqlite3
+.vercel
