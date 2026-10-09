@@ -21,3 +21,6 @@ wheels/
 # Database
 *.sqlite3
 .vercel
+
+# Static files
+staticfiles/
