@@ -1,5 +1,6 @@
-import network
 import time
+
+import network
 import urequests
 
 WIFI_SSID = "WIFI_SSID"
