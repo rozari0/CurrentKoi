@@ -46,6 +46,10 @@ body {
     transform: rotate(45deg);
 }
 
+.brand-wordmark {
+    display: inline-block;
+}
+
 .nav-link {
     transition: opacity 180ms ease;
 }
@@ -59,5 +63,9 @@ body {
         border-left-width: 72px;
         border-right-width: 72px;
         border-bottom-width: 126px;
+    }
+
+    .brand-wordmark {
+        display: none;
     }
 }

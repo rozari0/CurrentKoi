@@ -1,5 +1,33 @@
 {% extends "base.html" %}
+{% block title %}CurrentKoi - Track how long your home had electricity{% endblock %}
 {% block content %}
-    <h1>Hello World!</h1>
+<div class="flex w-full flex-1 flex-col items-center justify-start pt-6 sm:pt-16">
+  <div class="w-full max-w-2xl text-center">
+  <p class="text-xs font-medium uppercase tracking-[0.25em] text-neutral-400">CurrentKoi</p>
 
+  <h1 class="mt-5 text-4xl font-semibold tracking-tight text-neutral-950 sm:text-5xl">
+    Track how long your home had electricity.
+  </h1>
+
+  <p class="mx-auto mt-5 max-w-lg text-base leading-relaxed text-neutral-500">
+    Your device pings every minute. Each gap becomes an outage, and every day gets logged
+    so you always know the real uptime.
+  </p>
+
+  <div class="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+    <a
+      href="{% url 'account_signup' %}"
+      class="w-full rounded-xl bg-neutral-950 px-6 py-3 text-sm font-medium text-white transition hover:bg-neutral-700 sm:w-auto"
+    >
+      Get started
+    </a>
+    <a
+      href="{% url 'account_login' %}"
+      class="w-full rounded-xl border border-neutral-200 px-6 py-3 text-sm font-medium text-neutral-950 transition hover:bg-neutral-100 sm:w-auto"
+    >
+      Sign in
+    </a>
+  </div>
+  </div>
+</div>
 {% endblock %}
