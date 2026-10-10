@@ -1,3 +1,4 @@
+from django.views.generic import TemplateView
 from ninja_extra import api_controller, http_post, permissions
 
 from .services import DeviceService
@@ -28,3 +29,7 @@ class DeviceController:
             "start_time": session.start_time,
             "end_time": session.end_time,
         }
+
+
+class HomeView(TemplateView):
+    template_name = "home.html"

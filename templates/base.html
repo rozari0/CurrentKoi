@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Minimal Landing Page</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/output.css' %}">
+</head>
+
+<body class="min-h-screen bg-white text-neutral-950 antialiased">
+
+  <main class="relative flex min-h-screen flex-col overflow-hidden">
+
+    <!-- Navbar -->
+    <header class="relative z-20 w-full px-6 py-5 md:px-[4%]">
+      <nav class="flex items-center justify-between gap-5">
+
+        <!-- Logo -->
+        <a href="#" aria-label="Homepage" class="flex shrink-0 items-center">
+          <svg
+            width="27"
+            height="27"
+            viewBox="0 0 28 28"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path d="M14 2 26 25H2L14 2Z" />
+          </svg>
+        </a>
+
+
+        <!-- Actions -->
+        <div class="flex items-center gap-2.5">
+          <a
+            href="{% url 'account_login' %}"
+            class="rounded-xl border border-neutral-200 px-4 py-2.5 text-sm font-medium transition hover:bg-neutral-100"
+          >
+            Sign in
+          </a>
+
+          <a
+            href="#"
+            class="rounded-xl bg-neutral-950 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-700"
+          >
+            Get started
+          </a>
+        </div>
+      </nav>
+    </header>
+
+    <!-- Hero -->
+    <section
+      class="relative flex flex-1 flex-col justify-center px-6 pb-32 pt-20 md:px-[4%] md:pb-40 md:pt-24"
+    >
+    {% block content %}
+    {% endblock %}
+      
+    </section>
+
+    
+  </main>
+</body>
+</html>

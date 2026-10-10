@@ -1,3 +1,63 @@
 @import "tailwindcss";
 
 @source "../../templates";
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.hero-glow {
+    background: radial-gradient(ellipse at center,
+            rgba(0, 0, 0, 0.12) 0%,
+            rgba(0, 0, 0, 0.045) 35%,
+            transparent 70%);
+}
+
+.hero-triangle {
+    width: 0;
+    height: 0;
+    border-left: 108px solid transparent;
+    border-right: 108px solid transparent;
+    border-bottom: 188px solid #111111;
+    filter: drop-shadow(0 0 18px rgba(0, 0, 0, 0.12));
+}
+
+.brand-mark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    color: #242424;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.7px;
+    white-space: nowrap;
+}
+
+.brand-symbol {
+    width: 25px;
+    height: 25px;
+    border: 2px solid currentColor;
+    border-radius: 7px;
+    transform: rotate(45deg);
+}
+
+.nav-link {
+    transition: opacity 180ms ease;
+}
+
+.nav-link:hover {
+    opacity: 0.55;
+}
+
+@media (max-width: 640px) {
+    .hero-triangle {
+        border-left-width: 72px;
+        border-right-width: 72px;
+        border-bottom-width: 126px;
+    }
+}
