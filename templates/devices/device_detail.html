@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% block title %}{{ device.name }} - Device Details{% endblock %}
+{% block content %}
+<div class="w-full max-w-6xl py-8">
+
+  <header class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <p class="text-xs font-medium uppercase tracking-[0.2em] text-neutral-400">Device</p>
+      <h1 class="mt-1 text-3xl font-semibold tracking-tight text-neutral-950">{{ device.name }}</h1>
+      <p class="mt-1 font-mono text-xs text-neutral-400">{{ device.id }}</p>
+    </div>
+    <div>
+      {% if device.is_online %}
+        <span class="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">
+          <span class="h-2 w-2 rounded-full bg-emerald-500"></span> Online
+        </span>
+      {% else %}
+        <span class="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-neutral-100 px-3 py-1 text-sm font-medium text-neutral-500">
+          <span class="h-2 w-2 rounded-full bg-neutral-400"></span> Offline
+        </span>
+      {% endif %}
+    </div>
+  </header>
+
+  <section class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+    <div class="rounded-xl border border-neutral-200 bg-white p-4">
+      <p class="text-xs font-medium uppercase tracking-wide text-neutral-400">Status</p>
+      <p class="mt-2 text-lg font-semibold tabular-nums text-neutral-950">
+        {% if device.is_online %}Online{% else %}Offline{% endif %}
+      </p>
+    </div>
+    <div class="rounded-xl border border-neutral-200 bg-white p-4">
+      <p class="text-xs font-medium uppercase tracking-wide text-neutral-400">Uptime today</p>
+      <p class="mt-2 text-lg font-semibold tabular-nums text-neutral-950">{{ today_uptime_hours }}<span class="text-sm font-normal text-neutral-400"> h</span></p>
+    </div>
+    <div class="rounded-xl border border-neutral-200 bg-white p-4">
+      <p class="text-xs font-medium uppercase tracking-wide text-neutral-400">Sessions today</p>
+      <p class="mt-2 text-lg font-semibold tabular-nums text-neutral-950">{{ today_session_count }}</p>
+    </div>
+    <div class="rounded-xl border border-neutral-200 bg-white p-4">
+      <p class="text-xs font-medium uppercase tracking-wide text-neutral-400">Total sessions</p>
+      <p class="mt-2 text-lg font-semibold tabular-nums text-neutral-950">{{ total_session_count }}</p>
+    </div>
+    <div class="rounded-xl border border-neutral-200 bg-white p-4">
+      <p class="text-xs font-medium uppercase tracking-wide text-neutral-400">Last ping</p>
+      <p class="mt-2 text-lg font-semibold tabular-nums text-neutral-950">{{ device.last_ping|timesince }}<span class="text-sm font-normal text-neutral-400"> ago</span></p>
+    </div>
+    <div class="rounded-xl border border-neutral-200 bg-white p-4">
+      <p class="text-xs font-medium uppercase tracking-wide text-neutral-400">Created</p>
+      <p class="mt-2 text-lg font-semibold tabular-nums text-neutral-950">{{ device.created_at|date:"M j, Y" }}</p>
+    </div>
+  </section>
+
+  <section class="mt-8 grid gap-6 lg:grid-cols-2">
+
+    <div class="rounded-xl border border-neutral-200 bg-white p-5">
+      <div class="mb-4 flex items-baseline justify-between">
+        <h2 class="text-sm font-semibold text-neutral-950">Electricity per day</h2>
+        <span class="text-xs text-neutral-400">Last {{ daily_labels|length }} days</span>
+      </div>
+      <div class="relative h-64">
+        <canvas id="daily-hours-chart"></canvas>
+      </div>
+    </div>
+
+    <div class="rounded-xl border border-neutral-200 bg-white p-5">
+      <div class="mb-4 flex items-baseline justify-between">
+        <h2 class="text-sm font-semibold text-neutral-950">Sessions per day</h2>
+        <span class="text-xs text-neutral-400">Power on-events</span>
+      </div>
+      <div class="relative h-64">
+        <canvas id="daily-counts-chart"></canvas>
+      </div>
+    </div>
+
+    <div class="rounded-xl border border-neutral-200 bg-white p-5">
+      <div class="mb-4 flex items-baseline justify-between">
+        <h2 class="text-sm font-semibold text-neutral-950">Today</h2>
+        <span class="text-xs text-neutral-400">{{ today_uptime_hours }} h online</span>
+      </div>
+      <div class="relative h-64">
+        <canvas id="today-chart"></canvas>
+      </div>
+    </div>
+
+    <div class="rounded-xl border border-neutral-200 bg-white p-5">
+      <div class="mb-4 flex items-baseline justify-between">
+        <h2 class="text-sm font-semibold text-neutral-950">Recent sessions</h2>
+        <span class="text-xs text-neutral-400">Duration (minutes)</span>
+      </div>
+      <div class="relative h-64">
+        <canvas id="timeline-chart"></canvas>
+      </div>
+    </div>
+
+  </section>
+
+  {% if not timeline_labels %}
+    <p class="mt-6 text-center text-sm text-neutral-400">No connection sessions recorded for this device yet.</p>
+  {% endif %}
+
+</div>
+
+{{ chart_data|json_script:"chart-data" }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  (function () {
+    const data = JSON.parse(document.getElementById("chart-data").textContent);
+
+    const INK = "#171717";
+    const MUTED = "#525252";
+    const GRID = "#e5e5e5";
+
+    Chart.defaults.font.family =
+      'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
+    Chart.defaults.color = MUTED;
+    Chart.defaults.borderColor = GRID;
+
+    const baseScales = {
+      x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkipPadding: 12 } },
+      y: { beginAtZero: true, grid: { color: GRID }, border: { display: false } },
+    };
+
+    const hoursTip = {
+      callbacks: {
+        label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y} h`,
+      },
+    };
+
+    new Chart(document.getElementById("daily-hours-chart"), {
+      type: "line",
+      data: {
+        labels: data.daily.labels,
+        datasets: [
+          {
+            label: "Hours online",
+            data: data.daily.hours,
+            borderColor: INK,
+            backgroundColor: "rgba(23, 23, 23, 0.06)",
+            fill: true,
+            tension: 0.35,
+            borderWidth: 2,
+            pointRadius: 2,
+            pointHoverRadius: 5,
+            pointBackgroundColor: INK,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: hoursTip },
+        scales: baseScales,
+      },
+    });
+
+    new Chart(document.getElementById("daily-counts-chart"), {
+      type: "bar",
+      data: {
+        labels: data.daily.labels,
+        datasets: [
+          {
+            label: "Sessions",
+            data: data.daily.counts,
+            backgroundColor: INK,
+            borderRadius: 4,
+            maxBarThickness: 28,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: baseScales.x,
+          y: { ...baseScales.y, ticks: { precision: 0 } },
+        },
+      },
+    });
+
+    new Chart(document.getElementById("timeline-chart"), {
+      type: "bar",
+      data: {
+        labels: data.timeline.labels,
+        datasets: [
+          {
+            label: "Duration",
+            data: data.timeline.minutes,
+            backgroundColor: MUTED,
+            borderRadius: 4,
+          },
+        ],
+      },
+      options: {
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: { label: (ctx) => `${ctx.parsed.x} min` },
+          },
+        },
+        scales: {
+          x: {
+            beginAtZero: true,
+            grid: { color: GRID },
+            border: { display: false },
+            ticks: { callback: (v) => `${v} min` },
+          },
+          y: { grid: { display: false } },
+        },
+      },
+    });
+
+    new Chart(document.getElementById("today-chart"), {
+      type: "doughnut",
+      data: {
+        labels: ["Online", "Offline"],
+        datasets: [
+          {
+            data: [data.today.uptimeHours, data.today.offlineHours],
+            backgroundColor: [INK, "#e5e5e5"],
+            borderWidth: 0,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: "70%",
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: { usePointStyle: true, boxWidth: 8, padding: 16 },
+          },
+          tooltip: {
+            callbacks: { label: (ctx) => `${ctx.label}: ${ctx.parsed} h` },
+          },
+        },
+      },
+    });
+  })();
+</script>
+{% endblock %}

@@ -40,8 +40,7 @@ class DeviceService:
         device.save(update_fields=["last_ping"])
 
         active_session: ConnectionSession | None = (
-            ConnectionSession.objects
-            .filter(
+            ConnectionSession.objects.filter(
                 device=device,
                 start_time__date=local_now.date(),
                 end_time__gte=now - THRESHOLD,
