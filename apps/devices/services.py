@@ -35,13 +35,15 @@ class DeviceService:
             device (Device): The device instance to update.
         """
         now = timezone.now()
+        local_now = timezone.localtime(now)
         device.last_ping = now
         device.save(update_fields=["last_ping"])
 
         active_session: ConnectionSession | None = (
-            ConnectionSession.objects.filter(
+            ConnectionSession.objects
+            .filter(
                 device=device,
-                start_time__date=now.date(),
+                start_time__date=local_now.date(),
                 end_time__gte=now - THRESHOLD,
             )
             .order_by("-end_time")
