@@ -1,0 +1,22 @@
+{% if field.field.widget.input_type == "checkbox" %}
+    <div class="mt-4">
+        <label for="{{ field.id_for_label }}" class="flex items-center gap-2.5 text-sm text-neutral-600">
+            {{ field }}
+            <span>{{ field.label }}</span>
+        </label>
+        {% for error in field.errors %}
+            <p class="mt-1.5 text-xs font-medium text-red-600">{{ error }}</p>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="mt-4">
+        <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-neutral-950">{{ field.label }}</label>
+        <div class="mt-1.5">{{ field }}</div>
+        {% if field.help_text %}
+            <p class="mt-1.5 text-xs leading-relaxed text-neutral-400">{{ field.help_text|safe }}</p>
+        {% endif %}
+        {% for error in field.errors %}
+            <p class="mt-1.5 text-xs font-medium text-red-600">{{ error }}</p>
+        {% endfor %}
+    </div>
+{% endif %}

@@ -10,6 +10,24 @@ body {
     font-family: Arial, Helvetica, sans-serif;
 }
 
+@layer base {
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="search"],
+    input[type="url"],
+    input[type="tel"],
+    input[type="number"],
+    textarea,
+    select {
+        @apply block w-full rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-sm text-neutral-950 outline-none transition placeholder:text-neutral-400 focus:border-neutral-950;
+    }
+
+    input[type="checkbox"] {
+        @apply h-4 w-4 shrink-0 rounded border-neutral-300 accent-neutral-950;
+    }
+}
+
 .hero-glow {
     background: radial-gradient(ellipse at center,
             rgba(0, 0, 0, 0.12) 0%,

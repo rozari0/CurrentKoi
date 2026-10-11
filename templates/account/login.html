@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Sign In" %}{% endblock %}
+
+{% block content %}
+<div class="w-full max-w-md">
+  <div class="rounded-2xl border border-neutral-200 bg-white p-8 sm:p-10">
+    <p class="text-xs font-medium uppercase tracking-[0.2em] text-neutral-400">{% trans "Account" %}</p>
+    <h1 class="mt-2 text-2xl font-semibold tracking-tight text-neutral-950">{% trans "Sign In" %}</h1>
+    <p class="mt-2 text-sm leading-relaxed text-neutral-500">
+      {% trans "Welcome back. Sign in to keep an eye on your power." %}
+    </p>
+
+    <form method="post" action="{% url 'account_login' %}" class="mt-6">
+      {% csrf_token %}
+
+      {% for field in form %}
+        {% include "account/_field.html" with field=field %}
+      {% endfor %}
+
+      {% if form.non_field_errors %}
+        <div class="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {% for error in form.non_field_errors %}
+            <p>{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if redirect_field_value %}
+        <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+      {% endif %}
+
+      <div class="mt-4 flex justify-end">
+        <a href="{% url 'account_reset_password' %}" class="text-sm text-neutral-500 transition hover:text-neutral-950">
+          {% trans "Forgot password?" %}
+        </a>
+      </div>
+
+      <button type="submit" class="mt-6 w-full rounded-xl bg-neutral-950 px-6 py-3 text-sm font-medium text-white transition hover:bg-neutral-700">
+        {% trans "Sign In" %}
+      </button>
+    </form>
+  </div>
+
+  <p class="mt-6 text-center text-sm text-neutral-500">
+    {% trans "Don't have an account?" %}
+    <a href="{% url 'account_signup' %}" class="font-medium text-neutral-950 transition hover:text-neutral-600">{% trans "Sign Up" %}</a>
+  </p>
+</div>
+{% endblock %}

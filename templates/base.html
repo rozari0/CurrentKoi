@@ -56,6 +56,19 @@
     </header>
 
     <div class="container mx-auto flex flex-1 flex-col items-center justify-center px-6 py-12 md:px-[4%]">
+      {% if messages %}
+        <div class="w-full max-w-md">
+          {% for message in messages %}
+            <div class="mb-3 rounded-xl border px-4 py-3 text-sm
+              {% if message.tags == 'error' %}border-red-200 bg-red-50 text-red-700
+              {% elif message.tags == 'success' %}border-emerald-200 bg-emerald-50 text-emerald-700
+              {% else %}border-neutral-200 bg-neutral-50 text-neutral-600{% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
       {% block content %}
       {% endblock %}
     </div>
