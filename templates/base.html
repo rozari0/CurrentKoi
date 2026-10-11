@@ -17,7 +17,7 @@
       <nav class="flex items-center justify-between gap-5">
 
         <!-- Logo -->
-        <a href="#" aria-label="Homepage" class="brand-mark shrink-0">
+        <a href="{% url 'home' %}" aria-label="Homepage" class="brand-mark shrink-0">
           <svg
             width="27"
             height="27"
@@ -38,19 +38,28 @@
 
         <!-- Actions -->
         <div class="flex items-center gap-2.5">
-          <a
-            href="{% url 'account_login' %}"
-            class="rounded-xl border border-neutral-200 px-4 py-2.5 text-sm font-medium transition hover:bg-neutral-100"
-          >
-            Sign in
-          </a>
+          {% if user.is_authenticated %}
+            <a
+              href="#"
+              class="rounded-xl bg-neutral-950 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-700"
+            >
+              Dashboard
+            </a>
+          {% else %}
+            <a
+              href="{% url 'account_login' %}"
+              class="rounded-xl border border-neutral-200 px-4 py-2.5 text-sm font-medium transition hover:bg-neutral-100"
+            >
+              Sign in
+            </a>
 
-          <a
-            href="#"
-            class="rounded-xl bg-neutral-950 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-700"
-          >
-            Get started
-          </a>
+            <a
+              href="#"
+              class="rounded-xl bg-neutral-950 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-700"
+            >
+              Get started
+            </a>
+          {% endif %}
         </div>
       </nav>
     </header>
