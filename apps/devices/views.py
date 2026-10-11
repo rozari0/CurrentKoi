@@ -99,6 +99,10 @@ class DeviceDetailView(DetailView):
         ]
 
         context["today_uptime_hours"] = round(today_seconds / 3600, 2)
+        context["today_uptime_minutes"] = int(
+            (context["today_uptime_hours"] - int(context["today_uptime_hours"])) * 60
+        )
+        context["today_uptime_hours"] = int(context["today_uptime_hours"])
         context["today_offline_hours"] = round(today_offline_seconds / 3600, 2)
         context["today_session_count"] = daily_counts.get(today, 0)
         context["total_session_count"] = ConnectionSession.objects.filter(
@@ -117,6 +121,7 @@ class DeviceDetailView(DetailView):
             },
             "today": {
                 "uptimeHours": context["today_uptime_hours"],
+                "uptimeMinutes": context["today_uptime_minutes"],
                 "offlineHours": context["today_offline_hours"],
             },
         }

@@ -584,9 +584,6 @@ body {
 .brand-wordmark {
   display: inline-block;
 }
-.brand-wordmark {
-  display: inline-block;
-}
 .nav-link {
   transition: opacity 180ms ease;
 }
@@ -599,10 +596,6 @@ body {
     border-right-width: 72px;
     border-bottom-width: 126px;
   }
-  .brand-wordmark {
-    display: none;
-  }
-}
   .brand-wordmark {
     display: none;
   }
