@@ -2,7 +2,7 @@
 name = "currentkoi"
 version = "0.1.0"
 readme = "README.md"
-requires-python = ">=3.15"
+requires-python = ">=3.14"
 dependencies = [
     "django>=6.1.2",
     "django-allauth>=65.19.7",
