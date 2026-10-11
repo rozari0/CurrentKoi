@@ -26,6 +26,21 @@ class DeviceService:
             return None
 
     @staticmethod
+    def get_user_devices(user) -> list[Device]:
+        """Return all devices owned by the given user, newest first."""
+        return list(Device.objects.filter(user=user).order_by("-created_at"))
+
+    @staticmethod
+    def create_device(user, name: str) -> Device:
+        """Create a device owned by the given user."""
+        return Device.objects.create(user=user, name=name)
+
+    @staticmethod
+    def delete_device(device: Device) -> None:
+        """Delete the given device and its connection sessions."""
+        device.delete()
+
+    @staticmethod
     @transaction.atomic
     def update_device_ping(device: Device) -> ConnectionSession:
         """

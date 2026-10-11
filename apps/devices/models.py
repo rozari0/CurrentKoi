@@ -20,7 +20,7 @@ class Device(LifecycleModel):
     @property
     def is_online(self):
         if self.last_ping:
-            return (self.last_ping - timezone.now()).total_seconds() < THRESHOLD_SECONDS
+            return (timezone.now() - self.last_ping).total_seconds() < THRESHOLD_SECONDS
         return False
 
     @hook(BEFORE_CREATE)

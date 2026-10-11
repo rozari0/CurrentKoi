@@ -1,9 +1,14 @@
 from datetime import timedelta
 
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.views import View
 from django.views.generic import DetailView, TemplateView
 from ninja_extra import api_controller, http_post, permissions
 
+from .forms import DeviceForm
 from .models import ConnectionSession, Device
 from .services import DeviceService
 from .throttle import DeviceRateThrottle
@@ -126,3 +131,44 @@ class DeviceDetailView(DetailView):
             },
         }
         return context
+
+
+class DashboardView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        return self._render(request)
+
+    def post(self, request, *args, **kwargs):
+        action = request.POST.get("action")
+
+        if action == "add":
+            return self._add(request)
+        if action == "delete":
+            return self._delete(request)
+
+        return self._render(request)
+
+    def _render(self, request, form=None):
+        context = {
+            "form": form or DeviceForm(),
+            "devices": DeviceService.get_user_devices(request.user),
+        }
+        return render(request, "devices/dashboard.html", context)
+
+    def _add(self, request):
+        form = DeviceForm(request.POST)
+        if form.is_valid():
+            device = DeviceService.create_device(
+                request.user, form.cleaned_data["name"]
+            )
+            messages.success(request, f"Added device “{device.name}”.")
+            return redirect("dashboard")
+        return self._render(request, form=form)
+
+    def _delete(self, request):
+        device = get_object_or_404(
+            Device, pk=request.POST.get("device_id"), user=request.user
+        )
+        name = device.name
+        DeviceService.delete_device(device)
+        messages.success(request, f"Removed device “{name}”.")
+        return redirect("dashboard")
