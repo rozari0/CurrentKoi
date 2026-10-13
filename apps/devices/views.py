@@ -109,7 +109,9 @@ class DeviceDetailView(DetailView):
         )
         context["today_uptime_hours"] = int(context["today_uptime_hours"])
         context["today_offline_hours"] = round(today_offline_seconds / 3600, 2)
-        context["today_session_count"] = daily_counts.get(today, 0)
+        context["today_outage_count"] = (
+            daily_counts.get(today, 0) - 1 if daily_counts.get(today, 0) > 0 else 0
+        )
         context["total_session_count"] = ConnectionSession.objects.filter(
             device=device
         ).count()

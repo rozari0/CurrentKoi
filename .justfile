@@ -1,5 +1,5 @@
 dev:
-  python manage.py runserver
+  uv run manage.py runserver
 
 tailwind:
   pnpx @tailwindcss/cli -i ./assets/src/input.css -o ./assets/css/output.css --watch
@@ -15,12 +15,12 @@ makemigrations:
   python manage.py makemigrations
 
 migrate:
-  python manage.py migrate
+  uv run manage.py migrate
 
 makeandmigrate: makemigrations migrate
 
 check:
-  python manage.py check
+  uv run manage.py check
 
 shell:
-  python manage.py shell -v 2
+  uv run manage.py shell -v 2
