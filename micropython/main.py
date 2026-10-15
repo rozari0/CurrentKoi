@@ -29,7 +29,7 @@ def send_request():
 
     try:
         print(f"Sending POST request to {API_URL}...")
-        response = urequests.post(API_URL, headers=headers)
+        response = urequests.post(API_URL, headers=headers, timeout=10)
 
         print("Status Code:", response.status_code)
         print("Response:", response.text)
