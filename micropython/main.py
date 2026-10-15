@@ -6,7 +6,7 @@ import urequests
 WIFI_SSID = "WIFI_SSID"
 WIFI_PASSWORD = "WIFI_PASSWORD"
 API_URL = "https://currentkoi.rozario.xyz/api/v1/devices/ping"
-BEARER_TOKEN = "DEVICE_KEY FROM CURRENTKOI DASHBOARD"
+BEARER_TOKEN = "DEVICE_KEY"
 
 
 def connect_wifi():
