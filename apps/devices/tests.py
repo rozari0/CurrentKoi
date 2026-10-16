@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.accounts.models import User
-from apps.devices.models import Device
+from apps.devices.models import ConnectionSession, Device
 
 LOGIN_URL = "/accounts/login/"
 
@@ -88,3 +88,46 @@ class ProfileRedirectTests(TestCase):
         self.assertRedirects(
             response, reverse("dashboard"), fetch_redirect_response=False
         )
+
+
+class DeviceDetailOutageTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="owner", password="pw12345!")
+        self.device = Device.objects.create(user=self.user, name="My device")
+        self.client.force_login(self.user)
+
+    def _add_session(self, start_time):
+        ConnectionSession.objects.create(
+            device=self.device, start_time=start_time, end_time=start_time
+        )
+
+    def _detail(self):
+        return self.client.get(reverse("device_detail", kwargs={"pk": self.device.pk}))
+
+    def test_daily_outages_counts_gaps_between_sessions(self):
+        day = timezone.localtime().replace(hour=9, minute=0, second=0, microsecond=0)
+        for hour in (9, 12, 15):
+            self._add_session(day.replace(hour=hour))
+
+        response = self._detail()
+        daily = response.context["chart_data"]["daily"]
+
+        self.assertIn("outages", daily)
+        self.assertEqual(daily["outages"][-1], 2)
+        self.assertEqual(response.context["today_outage_count"], 2)
+
+    def test_daily_outages_is_zero_without_a_drop(self):
+        day = timezone.localtime().replace(hour=9, minute=0, second=0, microsecond=0)
+        self._add_session(day)
+
+        response = self._detail()
+        daily = response.context["chart_data"]["daily"]
+
+        self.assertIn("outages", daily)
+        self.assertEqual(daily["outages"][-1], 0)
+
+    def test_page_labels_the_chart_as_power_outages_per_day(self):
+        response = self._detail()
+
+        self.assertContains(response, "Power outages per day")
+        self.assertNotContains(response, "Sessions per day")

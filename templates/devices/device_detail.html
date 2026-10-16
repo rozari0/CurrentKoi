@@ -61,11 +61,11 @@
 
     <div class="rounded-xl border border-neutral-200 bg-white p-5">
       <div class="mb-4 flex items-baseline justify-between">
-        <h2 class="text-sm font-semibold text-neutral-950">Sessions per day</h2>
-        <span class="text-xs text-neutral-400">Power on-events</span>
+        <h2 class="text-sm font-semibold text-neutral-950">Power outages per day</h2>
+        <span class="text-xs text-neutral-400">Offline gaps</span>
       </div>
       <div class="relative h-64">
-        <canvas id="daily-counts-chart"></canvas>
+        <canvas id="daily-outages-chart"></canvas>
       </div>
     </div>
 
@@ -150,14 +150,14 @@
       },
     });
 
-    new Chart(document.getElementById("daily-counts-chart"), {
+    new Chart(document.getElementById("daily-outages-chart"), {
       type: "bar",
       data: {
         labels: data.daily.labels,
         datasets: [
           {
-            label: "Sessions",
-            data: data.daily.counts,
+            label: "Outages",
+            data: data.daily.outages,
             backgroundColor: INK,
             borderRadius: 4,
             maxBarThickness: 28,

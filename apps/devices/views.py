@@ -93,7 +93,7 @@ class DeviceDetailView(DetailView):
 
         context["daily_labels"] = [day.strftime("%b %d") for day in days]
         context["daily_hours"] = [round(daily_seconds[day] / 3600, 2) for day in days]
-        context["daily_counts"] = [daily_counts[day] for day in days]
+        context["daily_outages"] = [max(daily_counts[day] - 1, 0) for day in days]
 
         context["timeline_labels"] = [
             timezone.localtime(session.start_time).strftime("%b %d, %H:%M")
@@ -109,9 +109,7 @@ class DeviceDetailView(DetailView):
         )
         context["today_uptime_hours"] = int(context["today_uptime_hours"])
         context["today_offline_hours"] = round(today_offline_seconds / 3600, 2)
-        context["today_outage_count"] = (
-            daily_counts.get(today, 0) - 1 if daily_counts.get(today, 0) > 0 else 0
-        )
+        context["today_outage_count"] = context["daily_outages"][-1]
         context["total_session_count"] = ConnectionSession.objects.filter(
             device=device
         ).count()
@@ -120,7 +118,7 @@ class DeviceDetailView(DetailView):
             "daily": {
                 "labels": context["daily_labels"],
                 "hours": context["daily_hours"],
-                "counts": context["daily_counts"],
+                "outages": context["daily_outages"],
             },
             "timeline": {
                 "labels": context["timeline_labels"],
