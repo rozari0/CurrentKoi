@@ -131,3 +131,42 @@ class DeviceDetailOutageTests(TestCase):
 
         self.assertContains(response, "Power outages per day")
         self.assertNotContains(response, "Sessions per day")
+
+
+class DeviceDetailTimelineTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="owner", password="pw12345!")
+        self.device = Device.objects.create(user=self.user, name="My device")
+        self.client.force_login(self.user)
+
+    def _add_session(self, start_time, end_time):
+        ConnectionSession.objects.create(
+            device=self.device, start_time=start_time, end_time=end_time
+        )
+
+    def _labels(self):
+        response = self.client.get(
+            reverse("device_detail", kwargs={"pk": self.device.pk})
+        )
+        return response.context["timeline_labels"]
+
+    def test_completed_session_shows_start_and_end(self):
+        start = (timezone.localtime() - timedelta(days=1)).replace(
+            hour=9, minute=0, second=0, microsecond=0
+        )
+        self._add_session(start, start.replace(hour=15, minute=20))
+
+        self.assertEqual(self._labels(), [f"{start.strftime('%b %d, %H:%M')} → 15:20"])
+
+    def test_ongoing_session_is_marked(self):
+        now = timezone.now()
+        self._add_session(now - timedelta(minutes=5), now)
+
+        self.assertTrue(self._labels()[-1].endswith("→ ongoing"))
+
+    def test_page_labels_the_timeline_card(self):
+        response = self.client.get(
+            reverse("device_detail", kwargs={"pk": self.device.pk})
+        )
+
+        self.assertContains(response, "Start → last ping")

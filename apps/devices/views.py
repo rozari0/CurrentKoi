@@ -9,7 +9,7 @@ from django.views.generic import DetailView, TemplateView
 from ninja_extra import api_controller, http_post, permissions
 
 from .forms import DeviceForm
-from .models import ConnectionSession, Device
+from .models import THRESHOLD_SECONDS, ConnectionSession, Device
 from .services import DeviceService
 from .throttle import DeviceRateThrottle
 
@@ -20,6 +20,23 @@ TIMELINE_SESSIONS = 15
 def _session_seconds(session: ConnectionSession) -> float:
     end = session.end_time or timezone.now()
     return max((end - session.start_time).total_seconds(), 0.0)
+
+
+def _timeline_label(session: ConnectionSession) -> str:
+    """Readable start → end label for a session, marking ongoing ones."""
+    start = timezone.localtime(session.start_time)
+    start_str = start.strftime("%b %d, %H:%M")
+    if session.end_time is None:
+        return f"{start_str} → ongoing"
+    if (timezone.now() - session.end_time).total_seconds() < THRESHOLD_SECONDS:
+        return f"{start_str} → ongoing"
+    end = timezone.localtime(session.end_time)
+    end_str = (
+        end.strftime("%H:%M")
+        if end.date() == start.date()
+        else end.strftime("%b %d, %H:%M")
+    )
+    return f"{start_str} → {end_str}"
 
 
 @api_controller(
@@ -95,10 +112,7 @@ class DeviceDetailView(DetailView):
         context["daily_hours"] = [round(daily_seconds[day] / 3600, 2) for day in days]
         context["daily_outages"] = [max(daily_counts[day] - 1, 0) for day in days]
 
-        context["timeline_labels"] = [
-            timezone.localtime(session.start_time).strftime("%b %d, %H:%M")
-            for session in timeline
-        ]
+        context["timeline_labels"] = [_timeline_label(session) for session in timeline]
         context["timeline_minutes"] = [
             round(_session_seconds(session) / 60, 1) for session in timeline
         ]

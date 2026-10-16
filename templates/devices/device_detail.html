@@ -82,7 +82,7 @@
     <div class="rounded-xl border border-neutral-200 bg-white p-5">
       <div class="mb-4 flex items-baseline justify-between">
         <h2 class="text-sm font-semibold text-neutral-950">Recent sessions</h2>
-        <span class="text-xs text-neutral-400">Duration (minutes)</span>
+        <span class="text-xs text-neutral-400">Start → last ping</span>
       </div>
       <div class="relative h-64">
         <canvas id="timeline-chart"></canvas>
@@ -195,7 +195,7 @@
         plugins: {
           legend: { display: false },
           tooltip: {
-            callbacks: { label: (ctx) => `${ctx.parsed.x} min` },
+            callbacks: { label: (ctx) => `${ctx.label} · ${ctx.parsed.x} min` },
           },
         },
         scales: {
