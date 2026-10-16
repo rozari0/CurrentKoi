@@ -214,3 +214,8 @@ class DashboardView(LoginRequiredMixin, View):
         DeviceService.delete_device(device)
         messages.success(request, f"Removed device “{name}”.")
         return redirect("dashboard")
+
+
+class FlashView(View):
+    def get(self, request):
+        return redirect("https://current-koi-tools.vercel.app/")
