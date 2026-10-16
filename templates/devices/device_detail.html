@@ -72,11 +72,20 @@
     <div class="rounded-xl border border-neutral-200 bg-white p-5">
       <div class="mb-4 flex items-baseline justify-between">
         <h2 class="text-sm font-semibold text-neutral-950">Today</h2>
-        <span class="text-xs text-neutral-400">{{ today_uptime_hours }} h online</span>
+        <span class="text-xs text-neutral-400">24-hour ring</span>
       </div>
-      <div class="relative h-64">
+      <div class="relative mx-auto h-64 w-full max-w-[15rem]">
         <canvas id="today-chart"></canvas>
+        <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+          <span class="text-xl font-semibold tabular-nums text-neutral-950">{{ today_uptime_hours }}h {{ today_uptime_minutes }}m</span>
+          <span class="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-neutral-600">online</span>
+        </div>
       </div>
+      <ul class="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-xs text-neutral-500">
+        <li class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-emerald-500"></span>Online</li>
+        <li class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-red-500"></span>Outage</li>
+        <li class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-neutral-200"></span>Remaining</li>
+      </ul>
     </div>
 
     <div class="rounded-xl border border-neutral-200 bg-white p-5">
@@ -213,29 +222,42 @@
       },
     });
 
+    const RING = { online: "#10b981", outage: "#ef4444", unknown: "#e5e5e5" };
+    const RING_NAME = { online: "Online", outage: "Outage", unknown: "Remaining" };
+    const todaySegments = data.today.segments;
+
     new Chart(document.getElementById("today-chart"), {
       type: "doughnut",
       data: {
-        labels: ["Online", "Offline"],
+        labels: todaySegments.map((s) => `${s.start}–${s.end}`),
         datasets: [
           {
-            data: [data.today.uptimeHours, data.today.offlineHours],
-            backgroundColor: [INK, "#e5e5e5"],
+            data: todaySegments.map((s) => s.minutes),
+            backgroundColor: todaySegments.map((s) => RING[s.kind]),
             borderWidth: 0,
+            hoverOffset: 4,
           },
         ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        rotation: 0,
+        circumference: 360,
         cutout: "70%",
         plugins: {
-          legend: {
-            position: "bottom",
-            labels: { usePointStyle: true, boxWidth: 8, padding: 16 },
-          },
+          legend: { display: false },
           tooltip: {
-            callbacks: { label: (ctx) => `${ctx.label}: ${ctx.parsed} h` },
+            callbacks: {
+              label: (ctx) => {
+                const seg = todaySegments[ctx.dataIndex];
+                const mins = Math.round(seg.minutes);
+                const hours = Math.floor(mins / 60);
+                const rest = mins % 60;
+                const duration = hours ? `${hours}h ${rest}m` : `${rest}m`;
+                return `${RING_NAME[seg.kind]} · ${seg.start}–${seg.end} (${duration})`;
+              },
+            },
           },
         },
       },

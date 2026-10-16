@@ -1,4 +1,5 @@
 from datetime import datetime, time, timedelta
+from types import SimpleNamespace
 
 from django.test import TestCase
 from django.urls import reverse
@@ -6,6 +7,7 @@ from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.devices.models import ConnectionSession, Device
+from apps.devices.views import _day_ring_spans
 
 LOGIN_URL = "/accounts/login/"
 
@@ -233,3 +235,150 @@ class DeviceDetailTimelineTests(TestCase):
         )
 
         self.assertContains(response, "Start → last ping")
+
+
+class DayRingSpanTests(TestCase):
+    """The 24-hour ring helper is pure: fixed times, no wall clock."""
+
+    def setUp(self):
+        tz = timezone.get_current_timezone()
+        self.tz = tz
+        self.day = timezone.localdate()
+        self.day_start = self._at(0, 0)
+        self.day_end = self.day_start + timedelta(days=1)
+
+    def _at(self, hour, minute=0):
+        return timezone.make_aware(
+            datetime.combine(self.day, time(hour, minute)), self.tz
+        )
+
+    @staticmethod
+    def _session(start, end):
+        return SimpleNamespace(start_time=start, end_time=end)
+
+    def _spans(self, monitored_start, monitored_end, sessions, has_data=True):
+        return _day_ring_spans(
+            self.day_start,
+            self.day_end,
+            monitored_start,
+            monitored_end,
+            sessions,
+            has_data,
+        )
+
+    def test_unknown_edges_with_outage_around_a_session(self):
+        spans = self._spans(
+            self._at(6), self._at(18), [self._session(self._at(9), self._at(12))]
+        )
+
+        self.assertEqual(
+            spans,
+            [
+                (self.day_start, self._at(6), "unknown"),
+                (self._at(6), self._at(9), "outage"),
+                (self._at(9), self._at(12), "online"),
+                (self._at(12), self._at(18), "outage"),
+                (self._at(18), self.day_end, "unknown"),
+            ],
+        )
+
+    def test_session_crossing_midnight_is_clipped_to_the_day(self):
+        spans = self._spans(
+            self.day_start,
+            self.day_end,
+            [self._session(self._at(22) - timedelta(days=1), self._at(3))],
+        )
+
+        self.assertEqual(spans[0], (self.day_start, self._at(3), "online"))
+        self.assertEqual(spans[-1], (self._at(3), self.day_end, "outage"))
+
+    def test_touching_sessions_merge_into_one_online_span(self):
+        spans = self._spans(
+            self._at(9),
+            self._at(11),
+            [
+                self._session(self._at(9), self._at(10)),
+                self._session(self._at(10), self._at(11)),
+            ],
+        )
+
+        self.assertIn((self._at(9), self._at(11), "online"), spans)
+        self.assertEqual(
+            [kind for _, _, kind in spans].count("online"), 1, spans
+        )
+
+    def test_no_recorded_data_is_unknown_not_outage(self):
+        spans = self._spans(self.day_start, self._at(12), [], has_data=False)
+
+        self.assertEqual(spans, [(self.day_start, self.day_end, "unknown")])
+
+
+class DeviceDetailTodayRingTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="owner", password="pw12345!")
+        self.device = Device.objects.create(user=self.user, name="My device")
+        self.client.force_login(self.user)
+        self.today = timezone.localdate()
+
+    def _set_created_at(self, when):
+        Device.objects.filter(pk=self.device.pk).update(created_at=when)
+        self.device.refresh_from_db()
+
+    def _add_session(self, start, end):
+        ConnectionSession.objects.create(
+            device=self.device, start_time=start, end_time=end
+        )
+
+    def _local(self, day, hour, minute=0):
+        return timezone.make_aware(
+            datetime.combine(day, time(hour, minute)),
+            timezone.get_current_timezone(),
+        )
+
+    def _segments(self):
+        response = self.client.get(
+            reverse("device_detail", kwargs={"pk": self.device.pk})
+        )
+        return response.context["chart_data"]["today"]["segments"]
+
+    def test_ring_tiles_the_whole_day(self):
+        self._set_created_at(self._local(self.today - timedelta(days=3), 0))
+        self._add_session(self._local(self.today, 0), self._local(self.today, 1))
+
+        total = sum(segment["minutes"] for segment in self._segments())
+
+        self.assertAlmostEqual(total, 24 * 60, places=1)
+
+    def test_the_rest_of_today_reads_as_unknown(self):
+        self._set_created_at(self._local(self.today - timedelta(days=3), 0))
+
+        segments = self._segments()
+
+        self.assertEqual(segments[-1]["kind"], "unknown")
+        self.assertEqual(segments[-1]["end"], "24:00")
+
+    def test_session_today_reads_online_then_outage(self):
+        self._set_created_at(self._local(self.today - timedelta(days=3), 0))
+        self._add_session(self._local(self.today, 0), self._local(self.today, 1))
+
+        segments = self._segments()
+
+        self.assertEqual(segments[0]["kind"], "online")
+        self.assertEqual(segments[0]["start"], "00:00")
+        self.assertEqual(segments[1]["kind"], "outage")
+
+    def test_device_without_any_session_is_not_all_outage(self):
+        self._set_created_at(self._local(self.today - timedelta(days=3), 0))
+
+        kinds = {segment["kind"] for segment in self._segments()}
+
+        self.assertEqual(kinds, {"unknown"})
+
+    def test_card_shows_the_ring_and_its_legend(self):
+        response = self.client.get(
+            reverse("device_detail", kwargs={"pk": self.device.pk})
+        )
+
+        self.assertContains(response, "24-hour ring")
+        self.assertContains(response, "Outage")
+        self.assertContains(response, "Remaining")

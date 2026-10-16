@@ -36,6 +36,68 @@ def _online_seconds(sessions, start, end) -> float:
     return total
 
 
+def _merge_spans(spans):
+    """Collapse touching spans of the same kind into one."""
+    merged = []
+    for start, end, kind in spans:
+        if end <= start:
+            continue
+        if merged and merged[-1][2] == kind and merged[-1][1] == start:
+            merged[-1] = (merged[-1][0], end, kind)
+        else:
+            merged.append((start, end, kind))
+    return merged
+
+
+def _day_ring_spans(
+    day_start, day_end, monitored_start, monitored_end, sessions, has_data
+):
+    """Ordered spans that fill one day for the 24-hour ring.
+
+    Each span is ``(start, end, kind)`` where kind is:
+
+    - ``online``  — a recorded connection session covered the span;
+    - ``outage``  — we were monitoring, but no session covered the span;
+    - ``unknown`` — outside the monitored window, either before the device
+      existed or after the current moment (the day has not passed yet).
+
+    The spans always tile the whole day with no gaps.
+    """
+    spans = []
+    if monitored_start > day_start:
+        spans.append((day_start, monitored_start, "unknown"))
+
+    if monitored_end > monitored_start:
+        if has_data:
+            cursor = monitored_start
+            for session in sessions:
+                start = max(session.start_time, monitored_start)
+                end = min(session.end_time or monitored_end, monitored_end)
+                if end <= cursor:
+                    continue
+                if start > cursor:
+                    spans.append((cursor, start, "outage"))
+                spans.append((max(start, cursor), end, "online"))
+                cursor = end
+            if cursor < monitored_end:
+                spans.append((cursor, monitored_end, "outage"))
+        else:
+            # A device that has never pinged is not having a day-long outage.
+            spans.append((monitored_start, monitored_end, "unknown"))
+
+    if monitored_end < day_end:
+        spans.append((monitored_end, day_end, "unknown"))
+
+    return _merge_spans(spans)
+
+
+def _clock_label(moment, day_end) -> str:
+    """A wall-clock label for a span edge, folding midnight into 24:00."""
+    if moment >= day_end:
+        return "24:00"
+    return timezone.localtime(moment).strftime("%H:%M")
+
+
 def _timeline_label(session: ConnectionSession) -> str:
     """Readable start → end label for a session, marking ongoing ones."""
     start = timezone.localtime(session.start_time)
@@ -156,6 +218,25 @@ class DeviceDetailView(DetailView):
             device=device
         ).count()
 
+        day_end = start_of_today + timedelta(days=1)
+        ring_spans = _day_ring_spans(
+            start_of_today,
+            day_end,
+            max(start_of_today, device.created_at),
+            min(day_end, local_now),
+            sessions,
+            has_data=context["total_session_count"] > 0,
+        )
+        today_segments = [
+            {
+                "kind": kind,
+                "minutes": round((end - start).total_seconds() / 60, 3),
+                "start": _clock_label(start, day_end),
+                "end": _clock_label(end, day_end),
+            }
+            for start, end, kind in ring_spans
+        ]
+
         context["chart_data"] = {
             "daily": {
                 "labels": context["daily_labels"],
@@ -170,6 +251,7 @@ class DeviceDetailView(DetailView):
                 "uptimeHours": context["today_uptime_hours"],
                 "uptimeMinutes": context["today_uptime_minutes"],
                 "offlineHours": context["today_offline_hours"],
+                "segments": today_segments,
             },
         }
         return context
