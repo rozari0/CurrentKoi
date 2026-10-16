@@ -15,7 +15,7 @@
 
       <form method="post" action="{% url 'account_confirm_email' confirmation.key %}" class="mt-6">
         {% csrf_token %}
-        <button type="submit" class="w-full rounded-xl bg-neutral-950 px-6 py-3 text-sm font-medium text-white transition hover:bg-neutral-700">
+        <button type="submit" class="btn btn-primary w-full">
           {% trans "Confirm Email" %}
         </button>
       </form>
@@ -25,7 +25,7 @@
       <p class="mt-2 text-sm leading-relaxed text-neutral-500">
         {% trans "This confirmation link is invalid or has expired." %}
       </p>
-      <a href="{% url 'account_login' %}" class="mt-6 block w-full rounded-xl border border-neutral-200 px-6 py-3 text-center text-sm font-medium text-neutral-950 transition hover:bg-neutral-100">
+      <a href="{% url 'account_login' %}" class="btn btn-outline mt-6 w-full">
         {% trans "Back to Sign In" %}
       </a>
     {% endif %}

@@ -28,6 +28,135 @@ body {
     }
 }
 
+/* Buttons — a control that visibly throws under the finger.
+   Keeps the incumbent ink/outline identity and gives every control the states
+   a real one needs: hover, focus-visible, active, disabled, and loading. */
+@layer components {
+    .btn {
+        @apply relative inline-flex cursor-pointer select-none items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-medium whitespace-nowrap;
+        transition:
+            background-color 140ms cubic-bezier(0.16, 1, 0.3, 1),
+            border-color 140ms cubic-bezier(0.16, 1, 0.3, 1),
+            color 140ms cubic-bezier(0.16, 1, 0.3, 1),
+            box-shadow 140ms cubic-bezier(0.16, 1, 0.3, 1),
+            transform 90ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .btn-sm {
+        @apply px-4 py-2.5;
+    }
+
+    /* Keyboard focus: a clean ring offset from the plate, on any ground. */
+    .btn:focus-visible {
+        outline: 2px solid var(--color-neutral-950);
+        outline-offset: 2px;
+    }
+
+    .btn:focus:not(:focus-visible) {
+        outline: none;
+    }
+
+    /* The press — the switch throws: one pixel down, no bounce. */
+    .btn:active:not(:disabled):not([aria-disabled="true"]):not(.is-loading) {
+        transform: translateY(1px) scale(0.985);
+        transition-duration: 60ms;
+    }
+
+    .btn:disabled,
+    .btn[aria-disabled="true"] {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    /* Loading — an action has been registered and the server is answering.
+       Text and icons give way to a spinner in place, so the plate's size holds. */
+    .btn.is-loading {
+        color: transparent;
+        pointer-events: none;
+        cursor: progress;
+    }
+
+    .btn.is-loading > * {
+        visibility: hidden;
+    }
+
+    .btn.is-loading::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        margin: auto;
+        width: 1.05em;
+        height: 1.05em;
+        border-radius: 9999px;
+        border: 2px solid color-mix(in srgb, var(--btn-fg, currentColor) 25%, transparent);
+        border-top-color: var(--btn-fg, currentColor);
+        animation: btn-spin 620ms linear infinite;
+    }
+
+    /* Primary — the ink plate. */
+    .btn-primary {
+        @apply bg-neutral-950 text-white;
+        --btn-fg: var(--color-white);
+    }
+
+    .btn-primary:hover {
+        @apply bg-neutral-700;
+    }
+
+    .btn-primary:active:not(:disabled):not(.is-loading) {
+        @apply bg-neutral-800;
+    }
+
+    /* Outline — the ghost plate. */
+    .btn-outline {
+        @apply border border-neutral-200 text-neutral-950;
+        --btn-fg: var(--color-neutral-950);
+    }
+
+    .btn-outline:hover {
+        @apply border-neutral-300 bg-neutral-100;
+    }
+
+    .btn-outline:active:not(:disabled):not(.is-loading) {
+        @apply border-neutral-300 bg-neutral-200;
+    }
+
+    /* Danger — the release plate. */
+    .btn-danger {
+        @apply border border-red-200 text-red-600;
+        --btn-fg: var(--color-red-600);
+    }
+
+    .btn-danger:hover {
+        @apply border-red-300 bg-red-50;
+    }
+
+    .btn-danger:active:not(:disabled):not(.is-loading) {
+        @apply bg-red-100;
+    }
+}
+
+@keyframes btn-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .btn {
+        transition-duration: 1ms;
+    }
+
+    /* Keep the press legible via colour, drop the spatial move. */
+    .btn:active:not(:disabled):not([aria-disabled="true"]):not(.is-loading) {
+        transform: none;
+    }
+
+    .btn.is-loading::after {
+        animation-duration: 1.6s;
+    }
+}
+
 .hero-glow {
     background: radial-gradient(ellipse at center,
             rgba(0, 0, 0, 0.12) 0%,

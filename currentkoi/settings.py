@@ -105,6 +105,7 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATICFILES_DIRS = [
     ("css", BASE_DIR / "assets" / "css"),
+    ("js", BASE_DIR / "assets" / "js"),
 ]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 

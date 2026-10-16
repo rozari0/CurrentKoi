@@ -38,7 +38,7 @@
       </div>
       <button
         type="submit"
-        class="shrink-0 rounded-xl bg-neutral-950 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-700"
+        class="btn btn-sm btn-primary shrink-0 px-5"
       >
         Add device
       </button>
@@ -77,7 +77,7 @@
             <div class="flex shrink-0 items-center gap-3">
               <a
                 href="{% url 'device_detail' device.pk %}"
-                class="rounded-xl border border-neutral-200 px-4 py-2.5 text-sm font-medium text-neutral-950 transition hover:bg-neutral-100"
+                class="btn btn-sm btn-outline"
               >
                 View
               </a>
@@ -87,7 +87,7 @@
                 <input type="hidden" name="device_id" value="{{ device.pk }}" />
                 <button
                   type="submit"
-                  class="rounded-xl border border-red-200 px-4 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
+                  class="btn btn-sm btn-danger"
                 >
                   Delete
                 </button>
