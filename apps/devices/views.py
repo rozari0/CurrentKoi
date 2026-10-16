@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views import View
@@ -20,6 +21,19 @@ TIMELINE_SESSIONS = 15
 def _session_seconds(session: ConnectionSession) -> float:
     end = session.end_time or timezone.now()
     return max((end - session.start_time).total_seconds(), 0.0)
+
+
+def _online_seconds(sessions, start, end) -> float:
+    """Total online time of the sessions overlapping the [start, end] window."""
+    total = 0.0
+    for session in sessions:
+        session_end = session.end_time or end
+        overlap = (
+            min(session_end, end) - max(session.start_time, start)
+        ).total_seconds()
+        if overlap > 0:
+            total += overlap
+    return total
 
 
 def _timeline_label(session: ConnectionSession) -> str:
@@ -80,37 +94,51 @@ class DeviceDetailView(DetailView):
 
         local_now = timezone.localtime()
         today = local_now.date()
+        start_of_today = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
         first_day = today - timedelta(days=DAILY_WINDOW_DAYS - 1)
+        window_start = start_of_today - timedelta(days=DAILY_WINDOW_DAYS - 1)
 
         sessions = list(
-            ConnectionSession.objects.filter(
-                device=device,
-                start_time__date__gte=first_day,
-            ).order_by("start_time")
+            ConnectionSession.objects.filter(device=device)
+            .filter(Q(end_time__gte=window_start) | Q(end_time__isnull=True))
+            .order_by("start_time")
         )
 
         days = [
             first_day + timedelta(days=offset) for offset in range(DAILY_WINDOW_DAYS)
         ]
-        daily_seconds = dict.fromkeys(days, 0.0)
         daily_counts = dict.fromkeys(days, 0)
+        daily_online_seconds = dict.fromkeys(days, 0.0)
+        daily_offline_seconds = dict.fromkeys(days, 0.0)
 
         for session in sessions:
             day = timezone.localtime(session.start_time).date()
-            if day in daily_seconds:
-                daily_seconds[day] += _session_seconds(session)
+            if day in daily_counts:
                 daily_counts[day] += 1
 
-        today_seconds = daily_seconds.get(today, 0.0)
-        start_of_today = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
-        elapsed_seconds = (local_now - start_of_today).total_seconds()
-        today_offline_seconds = max(elapsed_seconds - today_seconds, 0.0)
+        for day in days:
+            day_start = start_of_today - timedelta(days=(today - day).days)
+            monitored_start = max(day_start, device.created_at)
+            monitored_end = min(day_start + timedelta(days=1), local_now)
+            monitored_seconds = (monitored_end - monitored_start).total_seconds()
+            if monitored_seconds <= 0:
+                continue
+            online_seconds = _online_seconds(sessions, monitored_start, monitored_end)
+            daily_online_seconds[day] = online_seconds
+            daily_offline_seconds[day] = max(monitored_seconds - online_seconds, 0.0)
+
+        today_seconds = daily_online_seconds[today]
+        today_offline_seconds = daily_offline_seconds[today]
 
         timeline = sessions[-TIMELINE_SESSIONS:]
 
         context["daily_labels"] = [day.strftime("%b %d") for day in days]
-        context["daily_hours"] = [round(daily_seconds[day] / 3600, 2) for day in days]
-        context["daily_outages"] = [max(daily_counts[day] - 1, 0) for day in days]
+        context["daily_hours"] = [
+            round(daily_online_seconds[day] / 3600, 2) for day in days
+        ]
+        context["daily_offline_hours"] = [
+            round(daily_offline_seconds[day] / 3600, 2) for day in days
+        ]
 
         context["timeline_labels"] = [_timeline_label(session) for session in timeline]
         context["timeline_minutes"] = [
@@ -123,7 +151,7 @@ class DeviceDetailView(DetailView):
         )
         context["today_uptime_hours"] = int(context["today_uptime_hours"])
         context["today_offline_hours"] = round(today_offline_seconds / 3600, 2)
-        context["today_outage_count"] = context["daily_outages"][-1]
+        context["today_outage_count"] = max(daily_counts.get(today, 0) - 1, 0)
         context["total_session_count"] = ConnectionSession.objects.filter(
             device=device
         ).count()
@@ -132,7 +160,7 @@ class DeviceDetailView(DetailView):
             "daily": {
                 "labels": context["daily_labels"],
                 "hours": context["daily_hours"],
-                "outages": context["daily_outages"],
+                "offlineHours": context["daily_offline_hours"],
             },
             "timeline": {
                 "labels": context["timeline_labels"],

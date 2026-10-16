@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 
 from django.test import TestCase
 from django.urls import reverse
@@ -90,7 +90,9 @@ class ProfileRedirectTests(TestCase):
         )
 
 
-class DeviceDetailOutageTests(TestCase):
+class DeviceDetailOutageCountTests(TestCase):
+    """The 'Power outages today' card still counts intra-day gaps."""
+
     def setUp(self):
         self.user = User.objects.create_user(username="owner", password="pw12345!")
         self.device = Device.objects.create(user=self.user, name="My device")
@@ -104,33 +106,94 @@ class DeviceDetailOutageTests(TestCase):
     def _detail(self):
         return self.client.get(reverse("device_detail", kwargs={"pk": self.device.pk}))
 
-    def test_daily_outages_counts_gaps_between_sessions(self):
+    def test_counts_gaps_between_sessions(self):
         day = timezone.localtime().replace(hour=9, minute=0, second=0, microsecond=0)
         for hour in (9, 12, 15):
             self._add_session(day.replace(hour=hour))
 
-        response = self._detail()
-        daily = response.context["chart_data"]["daily"]
+        self.assertEqual(self._detail().context["today_outage_count"], 2)
 
-        self.assertIn("outages", daily)
-        self.assertEqual(daily["outages"][-1], 2)
-        self.assertEqual(response.context["today_outage_count"], 2)
-
-    def test_daily_outages_is_zero_without_a_drop(self):
+    def test_is_zero_without_a_drop(self):
         day = timezone.localtime().replace(hour=9, minute=0, second=0, microsecond=0)
         self._add_session(day)
 
-        response = self._detail()
-        daily = response.context["chart_data"]["daily"]
+        self.assertEqual(self._detail().context["today_outage_count"], 0)
 
-        self.assertIn("outages", daily)
-        self.assertEqual(daily["outages"][-1], 0)
 
-    def test_page_labels_the_chart_as_power_outages_per_day(self):
-        response = self._detail()
+class DeviceDetailOfflineHoursTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="owner", password="pw12345!")
+        self.device = Device.objects.create(user=self.user, name="My device")
+        self.client.force_login(self.user)
+        self.today = timezone.localtime().date()
 
-        self.assertContains(response, "Power outages per day")
-        self.assertNotContains(response, "Sessions per day")
+    def _set_created_at(self, when):
+        Device.objects.filter(pk=self.device.pk).update(created_at=when)
+        self.device.refresh_from_db()
+
+    def _add_session(self, start, end):
+        ConnectionSession.objects.create(
+            device=self.device, start_time=start, end_time=end
+        )
+
+    def _local(self, day, hour, minute=0):
+        return timezone.make_aware(
+            datetime.combine(day, time(hour, minute)),
+            timezone.get_current_timezone(),
+        )
+
+    def _offline_hours(self, day):
+        response = self.client.get(
+            reverse("device_detail", kwargs={"pk": self.device.pk})
+        )
+        labels = response.context["daily_labels"]
+        series = response.context["chart_data"]["daily"]["offlineHours"]
+        return series[labels.index(day.strftime("%b %d"))]
+
+    def test_full_day_offline_shows_24_hours(self):
+        self._set_created_at(self._local(self.today - timedelta(days=2), 0))
+        yesterday = self.today - timedelta(days=1)
+
+        self.assertEqual(self._offline_hours(yesterday), 24.0)
+
+    def test_partial_day_shows_remaining_offline_hours(self):
+        self._set_created_at(self._local(self.today - timedelta(days=2), 0))
+        yesterday = self.today - timedelta(days=1)
+        self._add_session(self._local(yesterday, 9), self._local(yesterday, 15))
+
+        self.assertAlmostEqual(self._offline_hours(yesterday), 18.0, places=2)
+
+    def test_day_before_device_created_shows_zero(self):
+        self._set_created_at(self._local(self.today, 0))
+        before = self.today - timedelta(days=2)
+
+        self.assertEqual(self._offline_hours(before), 0.0)
+
+    def test_today_reports_offline_hours_so_far(self):
+        self._set_created_at(self._local(self.today - timedelta(days=2), 0))
+        self._add_session(self._local(self.today, 0), self._local(self.today, 1))
+
+        elapsed = (timezone.localtime() - self._local(self.today, 0)).total_seconds()
+        elapsed /= 3600
+
+        self.assertAlmostEqual(self._offline_hours(self.today), elapsed - 1, delta=0.1)
+
+    def test_session_crossing_midnight_is_clipped_to_the_day(self):
+        self._set_created_at(self._local(self.today - timedelta(days=2), 0))
+        yesterday = self.today - timedelta(days=1)
+        self._add_session(self._local(yesterday, 23), self._local(self.today, 1))
+
+        # Only the 23:00–24:00 hour belongs to yesterday.
+        self.assertAlmostEqual(self._offline_hours(yesterday), 23.0, places=2)
+
+    def test_page_labels_the_chart_as_offline_hours(self):
+        response = self.client.get(
+            reverse("device_detail", kwargs={"pk": self.device.pk})
+        )
+
+        self.assertContains(response, "Offline hours per day")
+        self.assertNotContains(response, "Power outages per day")
+        self.assertContains(response, "Power outages today")
 
 
 class DeviceDetailTimelineTests(TestCase):

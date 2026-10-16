@@ -61,8 +61,8 @@
 
     <div class="rounded-xl border border-neutral-200 bg-white p-5">
       <div class="mb-4 flex items-baseline justify-between">
-        <h2 class="text-sm font-semibold text-neutral-950">Power outages per day</h2>
-        <span class="text-xs text-neutral-400">Offline gaps</span>
+        <h2 class="text-sm font-semibold text-neutral-950">Offline hours per day</h2>
+        <span class="text-xs text-neutral-400">Hours offline</span>
       </div>
       <div class="relative h-64">
         <canvas id="daily-outages-chart"></canvas>
@@ -156,8 +156,8 @@
         labels: data.daily.labels,
         datasets: [
           {
-            label: "Outages",
-            data: data.daily.outages,
+            label: "Hours offline",
+            data: data.daily.offlineHours,
             backgroundColor: INK,
             borderRadius: 4,
             maxBarThickness: 28,
@@ -167,7 +167,10 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: (ctx) => `${ctx.parsed.y} h` } },
+        },
         scales: {
           x: baseScales.x,
           y: { ...baseScales.y, ticks: { precision: 0 } },
