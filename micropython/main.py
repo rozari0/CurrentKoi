@@ -1,5 +1,7 @@
+import gc
 import time
 
+import machine
 import network
 import urequests
 
@@ -7,6 +9,8 @@ WIFI_SSID = "WIFI_SSID"
 WIFI_PASSWORD = "WIFI_PASSWORD"
 API_URL = "https://currentkoi.rozario.xyz/api/v1/devices/ping"
 BEARER_TOKEN = "DEVICE_KEY"
+
+wdt = machine.WDT(timeout=120000)  # 120 second
 
 
 def connect_wifi():
@@ -25,6 +29,7 @@ def connect_wifi():
 
 
 def send_request():
+    response = None
     headers = {"Authorization": f"Bearer {BEARER_TOKEN}"}
 
     try:
@@ -38,6 +43,10 @@ def send_request():
 
     except Exception as e:
         print("Failed to send request:", e)
+    finally:
+        if response is not None:
+            response.close()
+    gc.collect()
 
 
 def main():
@@ -49,7 +58,7 @@ def main():
         else:
             print("WiFi disconnected. Reconnecting...")
             connect_wifi()
-
+        wdt.feed()
         time.sleep(60)
 
 
